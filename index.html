@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORM. — Gym Tracker</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FORM.">
+<link rel="manifest" href="manifest.json">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  :root {
+    --black:#0a0a0a; --dark:#111; --card:#161616; --border:#1e1e1e;
+    --muted:#555; --text:#e8e8e8; --red:#e63946; --green:#2ecc71; --amber:#f39c12;
+  }
+  body { background:var(--black); color:var(--text); font-family:system-ui,-apple-system,sans-serif; font-size:14px; min-height:100vh; overscroll-behavior:none; }
+
+  /* HEADER */
+  .header { border-bottom:1px solid var(--border); padding:0 16px; display:flex; align-items:center; justify-content:space-between; height:52px; background:var(--black); position:sticky; top:0; z-index:50; }
+  .logo { font-weight:900; font-size:18px; letter-spacing:5px; color:#fff; }
+  .logo span { color:var(--red); }
+  .header-stat { font-size:11px; color:var(--muted); font-family:monospace; }
+  .header-stat strong { color:var(--text); }
+
+  /* TABS */
+  .tabs { border-bottom:1px solid var(--border); overflow-x:auto; display:flex; gap:6px; padding:8px 14px; background:#0d0d0d; scrollbar-width:none; }
+  .tabs::-webkit-scrollbar { display:none; }
+  .tab { flex-shrink:0; padding:5px 13px; border-radius:20px; border:none; background:#1a1a1a; color:var(--muted); font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap; transition:all 0.15s; }
+  .tab.active { background:var(--red); color:#fff; font-weight:700; }
+  .tab-add { flex-shrink:0; padding:5px 13px; border-radius:20px; border:1px dashed #2a2a2a; background:transparent; color:#444; font-size:12px; cursor:pointer; font-family:inherit; white-space:nowrap; }
+
+  /* MAIN */
+  .main { padding:16px 14px; }
+  .main-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .page-title { font-weight:900; font-size:22px; letter-spacing:2px; text-transform:uppercase; color:#fff; }
+  .btn-upload { background:var(--red); color:#fff; border:none; padding:8px 16px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
+
+  /* GRID */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:12px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:9px; overflow:hidden; cursor:pointer; transition:transform 0.15s; }
+  .card:active { transform:scale(0.97); }
+  .card-thumb { position:relative; aspect-ratio:16/9; background:#000; overflow:hidden; }
+  .card-thumb video { width:100%; height:100%; object-fit:cover; display:block; }
+  .score-pin { position:absolute; top:7px; right:7px; padding:2px 7px; border-radius:4px; font-family:monospace; font-size:11px; font-weight:700; }
+  .score-pin.high { background:var(--green); color:#000; }
+  .score-pin.mid { background:var(--amber); color:#000; }
+  .score-pin.low { background:var(--red); color:#fff; }
+  .score-pin.none { background:rgba(0,0,0,0.6); color:var(--muted); }
+  .card-info { padding:9px 10px; }
+  .card-name { font-weight:600; font-size:13px; margin-bottom:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card-cat { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--red); }
+  .card-date { font-size:10px; color:var(--muted); font-family:monospace; float:right; }
+  .card-snippet { padding:6px 10px 9px; border-top:1px solid var(--border); font-size:11px; color:var(--muted); font-style:italic; line-height:1.5; }
+
+  /* EMPTY */
+  .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:300px; text-align:center; gap:10px; }
+  .empty-icon { font-size:40px; opacity:0.12; }
+  .empty-title { font-weight:900; font-size:18px; letter-spacing:3px; text-transform:uppercase; color:#222; }
+  .empty-sub { color:#333; font-size:12px; max-width:200px; line-height:1.6; }
+
+  /* SHEET MODAL */
+  .overlay { position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:100; display:flex; align-items:flex-end; justify-content:center; }
+  .overlay.hidden { display:none; }
+  .sheet { background:var(--dark); border:1px solid #222; border-radius:14px 14px 0 0; width:100%; max-width:560px; padding:20px 18px 36px; max-height:92vh; overflow-y:auto; }
+  .sheet-handle { width:36px; height:4px; background:#2a2a2a; border-radius:2px; margin:0 auto 16px; }
+  .sheet-title { font-weight:900; font-size:17px; letter-spacing:2px; text-transform:uppercase; color:#fff; margin-bottom:16px; }
+
+  /* FORM */
+  .form-group { margin-bottom:13px; }
+  .form-label { display:block; font-size:10px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); margin-bottom:5px; }
+  .form-input, .form-select { width:100%; background:#0a0a0a; border:1px solid #222; color:var(--text); padding:9px 11px; border-radius:6px; font-size:14px; font-family:inherit; outline:none; }
+  .form-select option { background:var(--dark); }
+  .drop-zone { border:2px dashed #222; border-radius:8px; padding:20px 14px; text-align:center; cursor:pointer; background:#0a0a0a; transition:all 0.15s; }
+  .drop-zone.has-file { border-color:var(--red); }
+  .drop-icon { font-size:24px; margin-bottom:6px; }
+  .drop-text { font-size:12px; color:var(--muted); line-height:1.5; }
+  .drop-text strong { color:var(--text); }
+  .preview-vid { width:100%; border-radius:6px; margin-top:8px; max-height:120px; object-fit:cover; background:#000; display:block; }
+
+  /* PROGRESS */
+  .progress-wrap { margin-top:12px; display:none; }
+  .progress-bar { height:3px; background:#1a1a1a; border-radius:2px; overflow:hidden; margin-bottom:6px; }
+  .progress-fill { height:100%; background:var(--red); border-radius:2px; transition:width 0.3s; width:0%; }
+  .progress-text { font-size:11px; color:var(--muted); font-family:monospace; }
+
+  /* ACTIONS */
+  .sheet-actions { display:flex; gap:10px; margin-top:16px; }
+  .btn-ghost { background:transparent; color:var(--muted); border:1px solid #222; padding:10px 14px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit; }
+  .btn-primary { flex:1; background:var(--red); color:#fff; border:none; padding:10px; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; transition:opacity 0.15s; }
+  .btn-primary:disabled { background:#222; color:var(--muted); cursor:not-allowed; }
+  .btn-danger { background:transparent; border:1px solid var(--red); color:var(--red); padding:9px 14px; border-radius:6px; font-size:13px; cursor:pointer; font-family:inherit; }
+
+  /* SCORING */
+  .scoring { position:fixed; inset:0; background:rgba(0,0,0,0.95); z-index:200; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
+  .scoring.hidden { display:none; }
+  .scoring-icon { font-size:40px; animation:pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:.6} 50%{transform:scale(1.1);opacity:1} }
+  .scoring-title { font-weight:900; font-size:22px; letter-spacing:4px; text-transform:uppercase; }
+  .scoring-msg { font-size:12px; color:var(--muted); }
+
+  /* DETAIL SHEET */
+  .detail-video { width:100%; aspect-ratio:16/9; background:#000; display:block; border-radius:8px; margin-bottom:14px; }
+  .detail-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .detail-name { font-weight:900; font-size:20px; color:#fff; margin-bottom:5px; }
+  .detail-meta { display:flex; gap:8px; align-items:center; }
+  .meta-tag { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--red); background:rgba(230,57,70,0.12); padding:3px 8px; border-radius:4px; }
+  .meta-date { font-size:10px; color:var(--muted); font-family:monospace; }
+  .score-block { text-align:center; flex-shrink:0; }
+  .score-big { font-weight:900; font-size:44px; line-height:1; }
+  .score-big.high { color:var(--green); }
+  .score-big.mid { color:var(--amber); }
+  .score-big.low { color:var(--red); }
+  .score-lbl { font-size:10px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+  .feedback-box { background:#0a0a0a; border:1px solid var(--border); border-radius:8px; padding:13px; font-size:13px; color:#ccc; line-height:1.7; margin-bottom:13px; }
+
+  /* TOAST */
+  .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(60px); background:#1a1a1a; border:1px solid #2a2a2a; border-radius:8px; padding:10px 16px; font-size:13px; z-index:500; color:var(--text); white-space:nowrap; opacity:0; transition:all 0.3s; }
+  .toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+  .toast.success { border-color:var(--green); }
+  .toast.error { border-color:var(--red); }
+
+  @media(min-width:600px) {
+    .grid { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">FORM<span>.</span></div>
+  <div class="header-stat">VIDEOS <strong id="totalCount">0</strong> &nbsp; AVG <strong id="avgScore">—</strong></div>
+</div>
+
+<div class="tabs" id="tabs"></div>
+
+<div class="main">
+  <div class="main-top">
+    <div class="page-title" id="pageTitle">All Videos</div>
+    <button class="btn-upload" onclick="openUpload()">+ Upload</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty hidden" id="empty">
+    <div class="empty-icon">🎬</div>
+    <div class="empty-title">No Videos Yet</div>
+    <div class="empty-sub">Tap + Upload to add your first training clip.</div>
+  </div>
+</div>
+
+<!-- UPLOAD SHEET -->
+<div class="overlay hidden" id="uploadOverlay" onclick="overlayClose(event,'uploadOverlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Upload Clip</div>
+    <div class="form-group">
+      <label class="form-label">Exercise Name</label>
+      <input type="text" class="form-input" id="exName" placeholder="e.g. Bench Press, Back Squat">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Category</label>
+      <select class="form-select" id="catSelect"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Video</label>
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileIn').click()">
+        <div class="drop-icon">📹</div>
+        <div class="drop-text" id="dropText"><strong>Tap to select video</strong><br>MP4 or MOV, up to 45s</div>
+      </div>
+      <input type="file" id="fileIn" accept="video/*" style="display:none" onchange="onFileSelect(event)">
+      <video id="previewVid" class="preview-vid" style="display:none" muted controls playsinline></video>
+    </div>
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">Uploading...</div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-ghost" onclick="closeUpload()">Cancel</button>
+      <button class="btn-primary" id="submitBtn" onclick="handleUpload()" disabled>Upload & Score</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCORING SCREEN -->
+<div class="scoring hidden" id="scoringScreen">
+  <div class="scoring-icon">🤖</div>
+  <div class="scoring-title">Analysing Form</div>
+  <div class="scoring-msg" id="scoringMsg">Uploading video...</div>
+</div>
+
+<!-- DETAIL SHEET -->
+<div class="overlay hidden" id="detailOverlay" onclick="overlayClose(event,'detailOverlay')">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <video id="detailVid" class="detail-video" controls playsinline></video>
+    <div class="detail-top">
+      <div>
+        <div class="detail-name" id="dName"></div>
+        <div class="detail-meta">
+          <span class="meta-tag" id="dCat"></span>
+          <span class="meta-date" id="dDate"></span>
+        </div>
+      </div>
+      <div class="score-block" id="scoreBlock" style="display:none">
+        <div class="score-big" id="dScore"></div>
+        <div class="score-lbl">/ 10 FORM</div>
+      </div>
+    </div>
+    <div class="feedback-box" id="dFeedback" style="display:none"></div>
+    <div class="sheet-actions">
+      <button class="btn-ghost" onclick="closeDetail()">Close</button>
+      <button class="btn-danger" id="deleteBtn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CAT SHEET -->
+<div class="overlay hidden" id="catOverlay" onclick="overlayClose(event,'catOverlay')">
+  <div class="sheet" style="max-height:50vh">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">New Category</div>
+    <div class="form-group">
+      <label class="form-label">Name</label>
+      <input type="text" class="form-input" id="newCatInput" placeholder="e.g. Push Day, Mobility" onkeydown="if(event.key==='Enter')addCat()">
+    </div>
+    <div class="sheet-actions">
+      <button class="btn-ghost" onclick="closeCat()">Cancel</button>
+      <button class="btn-primary" onclick="addCat()">Add</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const CLOUD = 'dto2jipcd';
+const API_KEY = '482595125946619';
+const PRESET = 'gym_videos';
+
+let videos = JSON.parse(localStorage.getItem('fv2') || '[]');
+let cats = JSON.parse(localStorage.getItem('fc2') || '["Upper Body","Lower Body","Full Body","HIIT","Push","Pull","Legs","Mobility"]');
+let activeCat = 'all';
+let selectedFile = null;
+let currentVideo = null;
+
+function save() {
+  // save without blob data
+  const toSave = videos.map(v => ({ ...v, blobUrl: undefined }));
+  localStorage.setItem('fv2', JSON.stringify(toSave));
+  localStorage.setItem('fc2', JSON.stringify(cats));
+}
+
+function init() { renderTabs(); renderGrid(); updateStats(); }
+
+// ── TABS ──────────────────────────────────────────────────────
+function renderTabs() {
+  const el = document.getElementById('tabs');
+  const all = [{ label:'All', cat:'all', count: videos.length }, ...cats.map(c => ({ label:c, cat:c, count: videos.filter(v=>v.category===c).length }))];
+  el.innerHTML = all.map(({ label, cat, count }) =>
+    `<button class="tab${activeCat===cat?' active':''}" onclick="filterCat('${cat}')">${label} <span style="opacity:0.6">${count}</span></button>`
+  ).join('') + `<button class="tab-add" onclick="openCat()">+ Add</button>`;
+
+  const sel = document.getElementById('catSelect');
+  if (sel) sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function filterCat(cat) {
+  activeCat = cat;
+  document.getElementById('pageTitle').textContent = cat === 'all' ? 'All Videos' : cat;
+  renderTabs(); renderGrid();
+}
+
+// ── GRID ──────────────────────────────────────────────────────
+function renderGrid() {
+  const list = activeCat === 'all' ? videos : videos.filter(v => v.category === activeCat);
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  if (!list.length) { grid.innerHTML = ''; empty.classList.remove('hidden'); return; }
+  empty.classList.add('hidden');
+  grid.innerHTML = [...list].reverse().map(v => {
+    const sc = v.score;
+    const cls = sc == null ? 'none' : sc >= 8 ? 'high' : sc >= 6 ? 'mid' : 'low';
+    const lbl = sc != null ? `${sc}/10` : '—';
+    return `<div class="card" onclick="openDetail('${v.id}')">
+      <div class="card-thumb">
+        ${v.url ? `<video src="${v.url}" muted preload="metadata"></video>` : ''}
+        <div class="score-pin ${cls}">${lbl}</div>
+      </div>
+      <div class="card-info">
+        <div class="card-name">${v.name}</div>
+        <span class="card-cat">${v.category}</span>
+        <span class="card-date">${fmtDate(v.date)}</span>
+      </div>
+      ${v.feedback ? `<div class="card-snippet">"${v.feedback.split('.')[0]}."</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function updateStats() {
+  document.getElementById('totalCount').textContent = videos.length;
+  const sc = videos.filter(v => v.score != null);
+  document.getElementById('avgScore').textContent = sc.length ? (sc.reduce((a,b)=>a+b.score,0)/sc.length).toFixed(1) : '—';
+}
+
+function fmtDate(iso) {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
+
+// ── UPLOAD ────────────────────────────────────────────────────
+function openUpload() {
+  document.getElementById('exName').value = '';
+  document.getElementById('previewVid').style.display = 'none';
+  document.getElementById('progressWrap').style.display = 'none';
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('dropZone').className = 'drop-zone';
+  document.getElementById('dropText').innerHTML = '<strong>Tap to select video</strong><br>MP4 or MOV, up to 45s';
+  selectedFile = null;
+  document.getElementById('fileIn').value = '';
+  document.getElementById('uploadOverlay').classList.remove('hidden');
+}
+
+function closeUpload() {
+  document.getElementById('uploadOverlay').classList.add('hidden');
+  // Don't reset selectedFile here - handleUpload needs it
+}
+
+function onFileSelect(e) {
+  const f = e.target.files && e.target.files[0];
+  if (!f) { console.log('No file selected'); return; }
+  console.log('File selected:', f.name, f.type, f.size);
+  selectedFile = f;
+  const url = URL.createObjectURL(f);
+  const vid = document.getElementById('previewVid');
+  vid.src = url; vid.style.display = 'block';
+  document.getElementById('dropZone').classList.add('has-file');
+  document.getElementById('dropText').innerHTML = `<strong>${f.name}</strong>`;
+  document.getElementById('submitBtn').disabled = false;
+}
+
+async function handleUpload() {
+  const name = document.getElementById('exName').value.trim();
+  const cat = document.getElementById('catSelect').value;
+  if (!selectedFile || !name) return;
+
+  // Capture file reference BEFORE closing modal
+  const fileToUpload = selectedFile;
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('uploadOverlay').classList.add('hidden');
+  document.getElementById('scoringScreen').classList.remove('hidden');
+  document.getElementById('scoringMsg').textContent = 'Uploading video to cloud...';
+  selectedFile = null;
+
+  try {
+    if (!fileToUpload) { throw new Error('No file selected'); }
+    console.log('Uploading:', fileToUpload.name, fileToUpload.type, fileToUpload.size);
+    const fd = new FormData();
+    fd.append('file', fileToUpload);
+    fd.append('upload_preset', PRESET);
+    fd.append('folder', 'gym_videos');
+    console.log('FormData built, sending to Cloudinary...');
+
+    const xhr = new XMLHttpRequest();
+    xhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        const pct = Math.round(e.loaded/e.total*100);
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('scoringMsg').textContent = `Uploading... ${pct}%`;
+      }
+    };
+
+    const uploadResult = await new Promise((res, rej) => {
+      xhr.onload = () => xhr.status === 200 ? res(JSON.parse(xhr.responseText)) : rej(new Error(xhr.responseText));
+      xhr.onerror = () => rej(new Error('Upload failed'));
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${CLOUD}/video/upload`);
+      xhr.send(fd);
+    });
+
+    document.getElementById('scoringMsg').textContent = 'Extracting frames for AI...';
+
+    // Extract frames from video
+    const frames = await extractFrames(fileToUpload);
+    document.getElementById('scoringMsg').textContent = 'AI is analysing your form...';
+
+    // Score with AI
+    const ai = await scoreForm(frames, name, cat);
+    document.getElementById('scoringScreen').classList.add('hidden');
+
+    const record = {
+      id: Date.now().toString(),
+      name, category: cat,
+      url: uploadResult.secure_url,
+      date: new Date().toISOString(),
+      score: ai.score,
+      feedback: ai.feedback,
+    };
+
+    videos.push(record);
+    save(); renderTabs(); renderGrid(); updateStats();
+    showToast(`${ai.score}/10 — ${name}`, 'success');
+
+  } catch(err) {
+    document.getElementById('scoringScreen').classList.add('hidden');
+    console.error(err);
+    showToast('Upload failed. Check connection.', 'error');
+    document.getElementById('submitBtn').disabled = false;
+  }
+}
+
+// ── FRAME EXTRACTION ──────────────────────────────────────────
+function extractFrames(file) {
+  return new Promise(resolve => {
+    const vid = document.createElement('video');
+    vid.src = URL.createObjectURL(file);
+    vid.muted = true;
+    vid.addEventListener('loadedmetadata', async () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 480; canvas.height = 270;
+      const ctx = canvas.getContext('2d');
+      const frames = [];
+      const times = [0.25, 0.5, 0.75].map(t => t * vid.duration);
+      for (const t of times) {
+        await new Promise(r => {
+          vid.currentTime = t;
+          vid.onseeked = () => { ctx.drawImage(vid, 0, 0, 480, 270); frames.push(canvas.toDataURL('image/jpeg', 0.6).split(',')[1]); r(); };
+        });
+      }
+      resolve(frames);
+    });
+    vid.load();
+  });
+}
+
+// ── AI SCORING via Netlify Function ──────────────────────────
+async function scoreForm(frames, exercise, category) {
+  const res = await fetch('/.netlify/functions/score', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ frames, exercise, category })
+  });
+  const data = await res.json();
+  return data;
+}
+
+// ── DETAIL ────────────────────────────────────────────────────
+function openDetail(id) {
+  const v = videos.find(x => x.id === id);
+  if (!v) return;
+  currentVideo = v;
+  document.getElementById('detailVid').src = v.url || '';
+  document.getElementById('dName').textContent = v.name;
+  document.getElementById('dCat').textContent = v.category;
+  document.getElementById('dDate').textContent = fmtDate(v.date);
+
+  const sb = document.getElementById('scoreBlock');
+  const ds = document.getElementById('dScore');
+  if (v.score != null) {
+    sb.style.display = 'block';
+    ds.textContent = v.score;
+    ds.className = 'score-big ' + (v.score >= 8 ? 'high' : v.score >= 6 ? 'mid' : 'low');
+  } else { sb.style.display = 'none'; }
+
+  const fb = document.getElementById('dFeedback');
+  if (v.feedback) { fb.textContent = v.feedback; fb.style.display = 'block'; }
+  else { fb.style.display = 'none'; }
+
+  document.getElementById('deleteBtn').onclick = () => deleteVideo(id);
+  document.getElementById('detailOverlay').classList.remove('hidden');
+}
+
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.add('hidden');
+  document.getElementById('detailVid').src = '';
+}
+
+function deleteVideo(id) {
+  videos = videos.filter(v => v.id !== id);
+  save(); renderTabs(); renderGrid(); updateStats();
+  closeDetail();
+  showToast('Deleted');
+}
+
+// ── CATEGORY ──────────────────────────────────────────────────
+function openCat() { document.getElementById('newCatInput').value = ''; document.getElementById('catOverlay').classList.remove('hidden'); setTimeout(() => document.getElementById('newCatInput').focus(), 100); }
+function closeCat() { document.getElementById('catOverlay').classList.add('hidden'); }
+function addCat() {
+  const name = document.getElementById('newCatInput').value.trim();
+  if (!name || cats.includes(name)) return;
+  cats.push(name); save(); renderTabs(); closeCat(); showToast(`"${name}" added`);
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function overlayClose(e, id) { if (e.target.classList.contains('overlay')) { document.getElementById(id).classList.add('hidden'); if (id === 'detailOverlay') document.getElementById('detailVid').src = ''; } }
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast show ${type}`;
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+init();
+</script>
+</body>
+</html>
