@@ -1,4 +1,4 @@
-toml
+
 [build]
   functions = "netlify/functions"
   publish = "."
